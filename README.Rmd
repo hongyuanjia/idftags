@@ -1,0 +1,43 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# idftags
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of idftags is to create [ctags](https://github.com/universal-ctags/ctags)-compatible
+tag file for [EnergyPlus](https://energyplus.net) IDFs.
+
+## Installation
+
+You can install the released version of idftags from [GitHub](https://github.com/hongyuanjia/idftags) with:
+
+```r
+# install.packages("remotes")
+remotes::install_github("hongyuanjia/idftags")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+library(idftags)
+file <- system.file("extdata/1ZoneUncontrolled.idf", package = "eplusr")
+build_idf_tag(file)
+```
+
+## Use together with Vim
