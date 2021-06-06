@@ -4,14 +4,19 @@
 \alias{build_idf_tag}
 \title{Build EnergyPlus IDF Tag file}
 \usage{
-build_idf_tag(path, out = "|")
+build_idf_tag(path, out = "|", cmd = FALSE)
 }
 \arguments{
 \item{path}{\code{\link[=character]{character()}} A string specifying the path of an EnergyPlus IDF
 file.}
 
 \item{out}{\code{\link[=character]{character()}} The output tag file path. If \code{"|"}, the tag file
-will be directly printed into stdout. Default: \code{"|"}}
+will be directly printed into stdout. Default: \code{"|"}.}
+
+\item{cmd}{\code{\link[=logical]{logical()}} If \code{TRUE} and both \code{path} and \code{out} are missing, try
+to read arguments using \code{\link[=commandArgs]{commandArgs()}} for \code{path} and \code{out}. This enables
+you to use \code{build_idf_tag()} in the way like
+\verb{Rscript -e "idftags:: build_idf_tag(cmd = TRUE)" path}. Default: \code{TRUE}.}
 }
 \description{
 \code{build_idf_tag()} extracts the locations of classes and objects in the

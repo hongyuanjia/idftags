@@ -41,3 +41,19 @@ build_idf_tag(file)
 ```
 
 ## Use together with Vim
+
+- Install [vista.vim](https://raw.githubusercontent.com/liuchengxu/vista.vim)
+  using [vim-plug](https://github.com/junegunn/vim-plug)
+
+```vim
+Plug 'liuchengxu/vista.vim'
+```
+
+- Add below to your vimrc
+
+```vim
+let g:vista_ctags_cmd = {
+    \ 'idf': 'Rscript -e "idftags::build_idf_tag(cmd = TRUE)"'
+    \ }
+```
+

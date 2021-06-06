@@ -144,18 +144,20 @@ build_tag_content <- function(path) {
     path <- normalizePath(path, winslash = "\\")
 
     dt[, class_tag := sprintf(
-        "%s\t%s\t/^%s$/;\"\tkind:c\tline:%s",
+        "%s\t%s\t/^%s$/;\"\tkind:%s\tline:%s",
         class_name,
         path,
         string,
+        "v",
         class_line
     )]
 
     dt[!is.na(object_line), object_tag := sprintf(
-        "%s\t%s\t/^%s$/;\"\tkind:m\tline:%s",
+        "%s\t%s\t/^%s$/;\"\tkind:%s\tline:%s",
         object_name,
         path,
         string,
+        "v",
         object_line
     )]
 
@@ -174,7 +176,12 @@ build_tag_content <- function(path) {
 #' @inheritParams read_object_location
 #'
 #' @param out [character()] The output tag file path. If `"|"`, the tag file
-#' will be directly printed into stdout. Default: `"|"`
+#' will be directly printed into stdout. Default: `"|"`.
+#'
+#' @param cmd [logical()] If `TRUE` and both `path` and `out` are missing, try
+#' to read arguments using [commandArgs()] for `path` and `out`. This enables
+#' you to use `build_idf_tag()` in the way like
+#' `Rscript -e "idftags:: build_idf_tag(cmd = TRUE)" path`. Default: `TRUE`.
 #'
 #' @export
 #' @examples
@@ -183,7 +190,19 @@ build_tag_content <- function(path) {
 #' build_idf_tag(system.file("extdata/1ZoneUncontrolled.idf", package = "eplusr"))
 #' }
 #' }
-build_idf_tag <- function(path, out = "|") {
+build_idf_tag <- function(path, out = "|", cmd = FALSE) {
+    if (isTRUE(cmd) && missing(path) && missing(out)) {
+        args <- commandArgs(TRUE)
+        if (length(args) == 0L) {
+            stop("argument \"path\" is missing, with no default")
+        } else if (length(args) == 1L) {
+            path <- args[1L]
+        } else {
+            path <- args[1L]
+            out <- args[2L]
+        }
+    }
+
     class_list <- read_idd_class()
 
     tag <- c(
