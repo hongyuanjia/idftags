@@ -18,3 +18,5 @@ RoxygenNote: 7.1.1
 Imports:
     data.table,
     stringi
+URL: https://github.com/hongyuanjia/idftags
+BugReports: https://github.com/hongyuanjia/idftags/issues
