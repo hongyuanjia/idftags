@@ -16,10 +16,11 @@ A \code{\link[data.table:data.table]{data.table::data.table()}} with 7 columns:
 \item \code{class_id}: \code{\link[=integer]{integer()}} Integers as the identifiers for each class detected.
 \item \code{class_line}: \code{\link[=integer]{integer()}} Line numbers indicating where the classes are found
 \item \code{class_name}: \code{\link[=character]{character()}} Standard EnergyPlus class names
+\item \code{class_string}: \code{\link[=character]{character()}} The raw input string for classes
 \item \code{object_id}: \code{\link[=integer]{integer()}} Integers as the identifiers for each object detected.
 \item \code{object_line}: \code{\link[=integer]{integer()}} Line numbers indicating where the objects are found
 \item \code{object_name}: \code{\link[=character]{character()}} Object names found
-\item \code{string}: \code{\link[=character]{character()}} The raw input string
+\item \code{object_string}: \code{\link[=character]{character()}} The raw input string for objects
 }
 }
 \description{

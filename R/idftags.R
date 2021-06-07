@@ -75,23 +75,37 @@ sep_idf_lines <- function(dt_lines, class_list) {
     # remove invalid class names
     dt_object <- dt_object[!is.na(class_name)]
 
+    # init string column
+    data.table::setnames(dt_object, "string", "class_string")
+    data.table::set(dt_object, NULL, "object_string", dt_object$class_string)
+
     # extract object names
+    ## for no-name object, directly use class location
+    dt_object[has_name == FALSE,
+        `:=`(object_name = sprintf("Object [%s]", object_id), object_line = line)
+    ]
+
     ## for single-line object, directly use the remaining string
     dt_object[has_name == TRUE & !stringi::stri_isempty(body),
-        `:=`(object_name = body, object_line = line)]
+        `:=`(object_name = body, object_line = line)
+    ]
+
     ## for normal object
-    dt_object[has_name == TRUE & is.na(object_name), c("object_name", "object_line", "string") := {
+    dt_object[has_name == TRUE & is.na(object_name), c("object_name", "object_line", "object_string") := {
         i <- which(dt_lines$line %in% line) + 1L
         name <- stringi::stri_split_charclass(dt_lines$body[i], "[,;]", n = 2L, simplify = TRUE)[, 1L]
         list(name, line + 1L, dt_lines$string[i])
     }]
 
+    # in case there are still empty object names
+    dt_object[stringi::stri_isempty(object_name), object_name := sprintf("Object [%s]", object_id)]
+
     # clean up
     data.table::set(dt_object, NULL, c("body", "class_name_upper", "has_name"), NULL)
     data.table::setnames(dt_object, "line", "class_line")
     data.table::setcolorder(dt_object, c(
-        "class_id", "class_line", "class_name",
-        "object_id", "object_line", "object_name"
+        "class_id", "class_line", "class_name", "class_string",
+        "object_id", "object_line", "object_name", "object_string"
     ))
 }
 
@@ -108,10 +122,11 @@ sep_idf_lines <- function(dt_lines, class_list) {
 #' - `class_id`: [integer()] Integers as the identifiers for each class detected.
 #' - `class_line`: [integer()] Line numbers indicating where the classes are found
 #' - `class_name`: [character()] Standard EnergyPlus class names
+#' - `class_string`: [character()] The raw input string for classes
 #' - `object_id`: [integer()] Integers as the identifiers for each object detected.
 #' - `object_line`: [integer()] Line numbers indicating where the objects are found
 #' - `object_name`: [character()] Object names found
-#' - `string`: [character()] The raw input string
+#' - `object_string`: [character()] The raw input string for objects
 #'
 #' @export
 #' @examples
@@ -124,13 +139,21 @@ read_object_location <- function(path) {
     sep_idf_lines(read_idf_lines(path), read_idd_class())[]
 }
 
+# imitate "--format=2 --excmd=mixed --sort=no --append=no"
 build_tag_header <- function() {
     c(
-        "!_TAG_FILE_FORMAT\t2\t/",
-        "!_TAG_FILE_SORTED\t1\t/",
-        "!_TAG_PROGRAM_AUTHOR\tHongyuan Jia\t/hongyuanjia@outlook.com/",
-        "!_TAG_PROGRAM_NAME\tidftags\t/",
-        sprintf("!_TAG_PROGRAM_VERSION\t%s\t/", utils::packageVersion("idftags"))
+        "!_TAG_FILE_FORMAT\t2\t/extended format; --format=1 will not append ;\" to lines/",
+        "!_TAG_FILE_SORTED\t0\t/0=unsorted, 1=sorted, 2=foldcase/",
+        "!_TAG_PROGRAM_AUTHOR\tHongyuan Jia\t/email: hongyuanjia@outlook.com/",
+        "!_TAG_PROGRAM_NAME\tidftags R package\t//",
+        "!_TAG_PROGRAM_URL\thttps://github.com/hongyuanjia/idftags\t//",
+        sprintf("!_TAG_PROGRAM_VERSION\t%s\t/", utils::packageVersion("idftags")),
+        "!_TAG_OUTPUT_MODE\tu-ctags\t/u-ctags or e-ctags/",
+        "!_TAG_OUTPUT_FILESEP\tslash\tslash or backslash/",
+        sprintf("!_TAG_PROC_CWD\t%s/\t//", normalizePath(getwd())),
+        "!_TAG_OUTPUT_EXCMD\tmixed\t/number, pattern, mixed, or combineV2/",
+        "!_TAG_KIND_DESCRIPTION!IDF\tc,class\t/EnergyPlus IDD classes/",
+        "!_TAG_KIND_DESCRIPTION!IDF\to,object\t/EnergyPlus IDF objects/"
     )
 }
 
@@ -143,33 +166,35 @@ build_tag_content <- function(path) {
 
     path <- normalizePath(path, winslash = "\\")
 
-    dt[, class_tag := sprintf(
-        "%s\t%s\t/^%s$/;\"\tkind:%s\tline:%s",
-        class_name,
-        path,
-        string,
-        "v",
-        class_line
-    )]
+    dt[, {
+        # class tag
+        class_tag <- sprintf(
+            "%s\t%s\t/^%s$/;\"\t%s\tline:%s",
+            stringi::stri_replace_all_fixed(class_name, ":", "_"),
+            path,
+            class_string,
+            "c",
+            class_line
+        )
 
-    dt[!is.na(object_line), object_tag := sprintf(
-        "%s\t%s\t/^%s$/;\"\tkind:%s\tline:%s",
-        object_name,
-        path,
-        string,
-        "v",
-        object_line
-    )]
+        # object tag
+        object_tag <- sprintf(
+            "%s\t%s\t/^%s$/;\"\t%s\tline:%s\tclass:%s",
+            stringi::stri_replace_all_charclass(object_name, "[^0-9a-zA-Z]", "_"),
+            path,
+            object_string,
+            "o",
+            object_line,
+            stringi::stri_replace_all_fixed(class_name, ":", "_")
+        )
 
-    dt[is.na(object_line), `:=`(tag = as.list(class_tag))]
-    dt[!is.na(object_line), `:=`(tag = list(c(class_tag, object_tag))), by = "object_id"]
-
-    unlist(dt$tag, FALSE, FALSE)
+        c(class_tag, object_tag)
+    }]
 }
 
 #' Build EnergyPlus IDF Tag file
 #'
-#' `build_idf_tag()` extracts the locations of classes and objects in the
+#' `build_idf_tags()` extracts the locations of classes and objects in the
 #' input EnergyPlus IDF and creates a
 #' [ctags](https://github.com/universal-ctags/ctags)-compatible tag file.
 #'
@@ -180,17 +205,17 @@ build_tag_content <- function(path) {
 #'
 #' @param cmd [logical()] If `TRUE` and both `path` and `out` are missing, try
 #' to read arguments using [commandArgs()] for `path` and `out`. This enables
-#' you to use `build_idf_tag()` in the way like
-#' `Rscript -e "idftags:: build_idf_tag(cmd = TRUE)" path`. Default: `TRUE`.
+#' you to use `build_idf_tags()` in the way like
+#' `Rscript -e "idftags:: build_idf_tags(cmd = TRUE)" path`. Default: `FALSE`.
 #'
 #' @export
 #' @examples
 #' \dontrun{
 #' if (requireNamespace("eplusr", quietly = TRUE)) {
-#' build_idf_tag(system.file("extdata/1ZoneUncontrolled.idf", package = "eplusr"))
+#' build_idf_tags(system.file("extdata/1ZoneUncontrolled.idf", package = "eplusr"))
 #' }
 #' }
-build_idf_tag <- function(path, out = "|", cmd = FALSE) {
+build_idf_tags <- function(path, out = "|", cmd = FALSE) {
     if (isTRUE(cmd) && missing(path) && missing(out)) {
         args <- commandArgs(TRUE)
         if (length(args) == 0L) {
@@ -221,5 +246,5 @@ build_idf_tag <- function(path, out = "|", cmd = FALSE) {
 utils::globalVariables(c(
     ".I", "class_line", "class_name", "class_tag", "has_name", "i.class_id",
     "i.class_name", "i.has_name", "line", "object_line", "object_name",
-    "object_tag", "string"
+    "object_tag", "string", "class_string", "object_id", "object_string"
 ))
