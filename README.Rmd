@@ -57,3 +57,7 @@ let g:vista_ctags_cmd = {
     \ }
 ```
 
+```{r, out.width = "50%"}
+knitr::include_graphics("tools/vista.png")
+```
+

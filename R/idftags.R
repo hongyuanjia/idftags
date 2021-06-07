@@ -170,7 +170,7 @@ build_tag_content <- function(path) {
         # class tag
         class_tag <- sprintf(
             "%s\t%s\t/^%s$/;\"\t%s\tline:%s",
-            stringi::stri_replace_all_fixed(class_name, ":", "_"),
+            class_name,
             path,
             class_string,
             "c",
@@ -180,12 +180,12 @@ build_tag_content <- function(path) {
         # object tag
         object_tag <- sprintf(
             "%s\t%s\t/^%s$/;\"\t%s\tline:%s\tclass:%s",
-            stringi::stri_replace_all_charclass(object_name, "[^0-9a-zA-Z]", "_"),
+            object_name,
             path,
             object_string,
             "o",
             object_line,
-            stringi::stri_replace_all_fixed(class_name, ":", "_")
+            class_name
         )
 
         c(class_tag, object_tag)
